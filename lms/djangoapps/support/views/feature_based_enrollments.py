@@ -46,21 +46,23 @@ class FeatureBasedEnrollmentsSupportView(View):
             course = CourseOverview.objects.values('display_name').get(id=key)
             duration_config = CourseDurationLimitConfig.current(course_key=key)
             gating_config = ContentTypeGatingConfig.current(course_key=key)
-            partially_enabled = duration_config.enabled != gating_config.enabled
+            duration_enabled = CourseDurationLimitConfig.enabled_for_course(course_key=key)
+            gating_enabled = ContentTypeGatingConfig.enabled_for_course(course_key=key)
+            partially_enabled = duration_enabled != gating_enabled
 
             if partially_enabled:
-                if duration_config.enabled:
+                if duration_enabled:
                     enabled = 'Course Duration Limits Only'
                     enabled_as_of = str(duration_config.enabled_as_of) if duration_config.enabled_as_of else 'N/A'
                     reason = 'Course duration limits are enabled for this course, but content type gating is disabled.'
-                elif gating_config.enabled:
+                elif gating_enabled:
                     enabled = 'Content Type Gating Only'
                     enabled_as_of = str(gating_config.enabled_as_of) if gating_config.enabled_as_of else 'N/A'
                     reason = 'Content type gating is enabled for this course, but course duration limits are disabled.'
             else:
-                enabled = duration_config.enabled or False
-                enabled_as_of = str(duration_config.enabled_as_of) if duration_config.enabled_as_of else 'N/A'
-                reason = duration_config.provenances['enabled']
+                enabled = gating_enabled or False
+                enabled_as_of = str(gating_config.enabled_as_of) if gating_config.enabled_as_of else 'N/A'
+                reason = gating_config.provenances['enabled']
 
             data = {
                 'course_id': course_key,
